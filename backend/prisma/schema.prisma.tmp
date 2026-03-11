@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  employeeId   String?  @unique
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  avatar       String?
+  role         Role     @default(EMPLOYEE)
+  department   String?
+  designation  String?
+  skills       String[]
+  bio          String?
+  
+  // Emergency Contact
+  emergencyContactName     String?
+  emergencyContactRelation String?
+  emergencyContactPhone    String?
+
+  // Password Management
+  tempPassword        String?
+  tempPasswordExpiry  DateTime?
+  isFirstLogin        Boolean   @default(false)
+  passwordChangedAt   DateTime?
+
+  managerId    String?
+  manager      User?    @relation("ManagerEmployee", fields: [managerId], references: [id])
+  employees    User[]   @relation("ManagerEmployee")
+  salary       Decimal?
+  joiningDate  DateTime @default(now())
+  isActive     Boolean  @default(true)
+
+  // Relations
+  assignedTasks Task[] @relation("TaskAssignee")
+  createdTasks  Task[] @relation("TaskCreator")
+
+  // Project Relations
+  managedProjects Project[]       @relation("ProjectManager")
+  clientProjects  Project[]       @relation("ProjectClient")
+  projectMembers  ProjectMember[]
+
+  dailyReports  DailyReport[]
+  attendance    Attendance[]
+  leaveRequests LeaveRequest[]
+  timeLogs      TimeLog[]
+  messages      Message[]
+  createdFiles  File[]
+
+  // Meetings
+  organizedMeetings     Meeting[]            @relation("MeetingOrganizer")
+  meetingParticipations MeetingParticipant[]
+
+  // Approvals
+  approvedLeaveRequests LeaveRequest[] @relation("LeaveApprover")
+
+  // Preferences
+  emailNotifications   Boolean @default(true)
+  inAppNotifications   Boolean @default(true)
+  smsNotifications     Boolean @default(false)
+  notifyTasks          Boolean @default(true)
+  notifyReports        Boolean @default(true)
+  notifyMeetings       Boolean @default(true)
+  notifyMessages       Boolean @default(true)
+  notifyProjectUpdates Boolean @default(false)
+
+  workingHoursStart String? @default("09:00 AM")
+  workingHoursEnd   String? @default("06:00 PM")
+  timezone          String? @default("Asia/Kolkata")
+  dndEnabled        Boolean @default(false)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  comments      Comment[]
+}

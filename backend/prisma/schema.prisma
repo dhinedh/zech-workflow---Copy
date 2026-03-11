@@ -1,0 +1,545 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Company {
+  id                 String             @id @default(cuid())
+  name               String
+  domain             String?            @unique
+  logoUrl            String?
+  address            String?
+  subscriptionStatus SubscriptionStatus @default(TRIAL)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  departments        Department[]
+  invoices           Invoice[]
+  projects           Project[]
+  roles              RoleConfig[]
+  subscriptions      Subscription[]
+  users              User[]
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String
+  companyId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id])
+  users     User[]
+
+  @@unique([companyId, name])
+}
+
+model RoleConfig {
+  id          String   @id @default(cuid())
+  name        String
+  permissions String[]
+  companyId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id])
+  users       User[]
+
+  @@unique([companyId, name])
+}
+
+model User {
+  id                       String               @id @default(cuid())
+  employeeId               String?
+  email                    String               @unique
+  passwordHash             String
+  name                     String
+  phone                    String?
+  avatar                   String?
+  role                     Role                 @default(EMPLOYEE)
+  designation              String?
+  skills                   String[]
+  bio                      String?
+  emergencyContactName     String?
+  emergencyContactRelation String?
+  emergencyContactPhone    String?
+  tempPassword             String?
+  tempPasswordExpiry       DateTime?
+  isFirstLogin             Boolean              @default(false)
+  passwordChangedAt        DateTime?
+  managerId                String?
+  salary                   Decimal?
+  joiningDate              DateTime             @default(now())
+  isActive                 Boolean              @default(true)
+  emailNotifications       Boolean              @default(true)
+  inAppNotifications       Boolean              @default(true)
+  workingHoursStart        String?              @default("09:00 AM")
+  workingHoursEnd          String?              @default("06:00 PM")
+  timezone                 String?              @default("Asia/Kolkata")
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  companyId                String?
+  departmentId             String?
+  roleConfigId             String?
+  attendance               Attendance[]
+  auditLogs                AuditLog[]
+  channelMemberships       ChannelMember[]
+  comments                 Comment[]
+  dailyReports             DailyReport[]
+  createdFiles             File[]
+  approvedLeaves           LeaveRequest[]       @relation("LeaveApprover")
+  leaveRequests            LeaveRequest[]       @relation("LeaveRequester")
+  organizedMeetings        Meeting[]            @relation("MeetingOrganizer")
+  meetingParticipations    MeetingParticipant[]
+  messages                 Message[]
+  notifications            Notification[]
+  clientProjects           Project[]            @relation("ProjectClient")
+  managedProjects          Project[]            @relation("ProjectManager")
+  projectMembers           ProjectMember[]
+  assignedTasks            Task[]               @relation("TaskAssignee")
+  createdTasks             Task[]               @relation("TaskCreator")
+  timeLogs                 TimeLog[]
+  company                  Company?             @relation(fields: [companyId], references: [id])
+  department               Department?          @relation(fields: [departmentId], references: [id])
+  manager                  User?                @relation("ManagerEmployee", fields: [managerId], references: [id])
+  employees                User[]               @relation("ManagerEmployee")
+  roleConfig               RoleConfig?          @relation(fields: [roleConfigId], references: [id])
+}
+
+model EmployeeIdSequence {
+  id           String   @id @default(cuid())
+  year         Int      @unique
+  lastSequence Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model EmployeeCreationLog {
+  id           String   @id @default(cuid())
+  employeeId   String
+  createdBy    String
+  tempPassword String
+  emailSent    Boolean  @default(false)
+  smsSent      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model Project {
+  id               String            @id @default(cuid())
+  name             String
+  description      String?
+  businessVertical BusinessVertical?
+  clientId         String?
+  managerId        String
+  startDate        DateTime
+  endDate          DateTime?
+  budget           Decimal?
+  status           ProjectStatus     @default(NOT_STARTED)
+  progress         Int               @default(0)
+  priority         Priority          @default(MEDIUM)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  companyId        String
+  channels         Channel[]
+  files            File[]
+  meetings         Meeting[]
+  milestones       Milestone[]
+  client           User?             @relation("ProjectClient", fields: [clientId], references: [id])
+  company          Company           @relation(fields: [companyId], references: [id])
+  manager          User              @relation("ProjectManager", fields: [managerId], references: [id])
+  members          ProjectMember[]
+  tasks            Task[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String?
+  joinedAt  DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+}
+
+model Milestone {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  projectId   String
+  dueDate     DateTime
+  status      MilestoneStatus @default(PENDING)
+  amount      Decimal?
+  isApproved  Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  project     Project         @relation(fields: [projectId], references: [id])
+}
+
+model Task {
+  id             String           @id @default(cuid())
+  title          String
+  description    String?
+  projectId      String
+  assignedToId   String?
+  createdById    String
+  status         TaskStatus       @default(PENDING)
+  priority       Priority         @default(MEDIUM)
+  dueDate        DateTime?
+  estimatedHours Int?
+  actualHours    Int?
+  parentTaskId   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  companyId      String
+  comments       Comment[]
+  attachments    File[]
+  assignedTo     User?            @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdBy      User             @relation("TaskCreator", fields: [createdById], references: [id])
+  parentTask     Task?            @relation("TaskSubtasks", fields: [parentTaskId], references: [id])
+  subtasks       Task[]           @relation("TaskSubtasks")
+  project        Project          @relation(fields: [projectId], references: [id])
+  blocking       TaskDependency[] @relation("BlockingTask")
+  dependencies   TaskDependency[] @relation("DependentTask")
+  timeLogs       TimeLog[]
+}
+
+model TaskDependency {
+  id        String   @id @default(cuid())
+  taskId    String
+  blockerId String
+  createdAt DateTime @default(now())
+  blocker   Task     @relation("BlockingTask", fields: [blockerId], references: [id])
+  task      Task     @relation("DependentTask", fields: [taskId], references: [id])
+}
+
+model DailyReport {
+  id              String       @id @default(cuid())
+  userId          String
+  date            DateTime     @db.Date
+  taskIds         String[]
+  hoursWorked     Decimal
+  accomplishments String
+  problems        String?
+  tomorrowPlan    String?
+  selfRating      Int          @default(3)
+  proofFileUrl    String?
+  status          ReportStatus @default(SUBMITTED)
+  managerFeedback String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  companyId       String
+  progressPct     Int          @default(0)
+  user            User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+}
+
+model TimeLog {
+  id          String    @id @default(cuid())
+  taskId      String?
+  userId      String
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Int?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  companyId   String?
+  task        Task?     @relation(fields: [taskId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model Attendance {
+  id           String    @id @default(cuid())
+  userId       String
+  date         DateTime  @db.Date
+  checkInTime  DateTime
+  checkOutTime DateTime?
+  workType     WorkType  @default(OFFICE)
+  gpsLocation  String?
+  totalHours   Decimal?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  companyId    String
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+}
+
+model LeaveRequest {
+  id           String      @id @default(cuid())
+  userId       String
+  leaveType    LeaveType
+  startDate    DateTime    @db.Date
+  endDate      DateTime    @db.Date
+  reason       String?
+  status       LeaveStatus @default(PENDING)
+  approvedById String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  companyId    String
+  approvedBy   User?       @relation("LeaveApprover", fields: [approvedById], references: [id])
+  user         User        @relation("LeaveRequester", fields: [userId], references: [id])
+}
+
+model Channel {
+  id        String          @id @default(cuid())
+  name      String
+  type      ChannelType
+  projectId String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  companyId String
+  project   Project?        @relation(fields: [projectId], references: [id])
+  members   ChannelMember[]
+  messages  Message[]
+}
+
+model ChannelMember {
+  id        String   @id @default(cuid())
+  channelId String
+  userId    String
+  joinedAt  DateTime @default(now())
+  channel   Channel  @relation(fields: [channelId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  content     String
+  senderId    String
+  channelId   String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  attachments File[]
+  channel     Channel  @relation(fields: [channelId], references: [id])
+  sender      User     @relation(fields: [senderId], references: [id])
+}
+
+model Meeting {
+  id           String               @id @default(cuid())
+  title        String
+  description  String?
+  startTime    DateTime
+  endTime      DateTime
+  meetingLink  String?
+  meetingType  MeetingType
+  projectId    String?
+  organizerId  String
+  notes        String?
+  recording    String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  companyId    String
+  organizer    User                 @relation("MeetingOrganizer", fields: [organizerId], references: [id])
+  project      Project?             @relation(fields: [projectId], references: [id])
+  participants MeetingParticipant[]
+}
+
+model MeetingParticipant {
+  id        String  @id @default(cuid())
+  meetingId String
+  userId    String
+  status    String?
+  meeting   Meeting @relation(fields: [meetingId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+model File {
+  id           String   @id @default(cuid())
+  name         String
+  url          String
+  size         Int
+  type         String
+  uploadedById String
+  projectId    String?
+  taskId       String?
+  messageId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  bucket       String?
+  key          String?
+  message      Message? @relation(fields: [messageId], references: [id])
+  project      Project? @relation(fields: [projectId], references: [id])
+  task         Task?    @relation(fields: [taskId], references: [id])
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  userId     String
+  details    String?
+  entityId   String?
+  entityType String?
+  createdAt  DateTime @default(now())
+  companyId  String?
+  ipAddress  String?
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Subscription {
+  id            String             @id @default(cuid())
+  companyId     String
+  planId        String
+  status        SubscriptionStatus
+  startDate     DateTime
+  endDate       DateTime?
+  paymentMethod String?
+  stripeSubId   String?
+  createdAt     DateTime           @default(now())
+  company       Company            @relation(fields: [companyId], references: [id])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  companyId String
+  amount    Decimal
+  status    String
+  url       String?
+  date      DateTime @default(now())
+  company   Company  @relation(fields: [companyId], references: [id])
+}
+
+enum Role {
+  SUPER_ADMIN
+  MANAGER
+  EMPLOYEE
+  CLIENT
+  INTERN
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum BusinessVertical {
+  SOFTWARE_DEV
+  CONSULTING
+  MANPOWER_SUPPLY
+  DIGITAL_MARKETING
+  ACADEMY
+  IT_SOLUTIONS
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+  active
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  BLOCKED
+  TODO
+  DONE
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PENDING
+}
+
+enum WorkType {
+  OFFICE
+  REMOTE
+  HYBRID
+}
+
+enum LeaveType {
+  CASUAL
+  SICK
+  EARNED
+  UNPAID
+  MATERNITY
+  PATERNITY
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum MeetingType {
+  STANDUP
+  REVIEW
+  PLANNING
+  CLIENT_CALL
+  ONE_ON_ONE
+  TEAM_MEETING
+}
+
+enum ChannelType {
+  DIRECT
+  GROUP
+  PROJECT
+  CLIENT
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  REPORT_APPROVED
+  REPORT_REJECTED
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  MEETING_REMINDER
+  PROJECT_UPDATE
+  MESSAGE_RECEIVED
+  DEADLINE_APPROACHING
+}
+
+enum MilestoneStatus {
+  PENDING
+  COMPLETED
+  APPROVED
+}

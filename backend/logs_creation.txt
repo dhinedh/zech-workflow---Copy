@@ -1,0 +1,8 @@
+Creating Super Admin: mugil9451@gmail.com...
+-------------------------------
+SUPER ADMIN CREATED SUCCESSFULLY
+Email: mugil9451@gmail.com
+Password: Password@123
+Employee ID: EMP-0001
+Role: SUPER_ADMIN
+-------------------------------

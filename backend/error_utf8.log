@@ -1,0 +1,53 @@
+﻿node : file:///D:/intership/
+tracking%20site/zech-workflo
+w/backend/dist/config/databa
+se.js:2
+At line:1 char:1
++ node dist/index.js 2>&1 | 
+Out-File -Encoding utf8 
+error_utf8.log
++ ~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (file:  
+  ///D:/inte...g/database   
+ .js:2:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+import { PrismaClient } 
+from '@prisma/client';
+         ^^^^^^^^^^^^
+SyntaxError: Named export 
+'PrismaClient' not found. 
+The requested module 
+'@prisma/client' is a 
+CommonJS module, which may 
+not support all 
+module.exports as named 
+exports.
+CommonJS modules can always 
+be imported via the default 
+export, for example using:
+
+import pkg from 
+'@prisma/client';
+const { PrismaClient } = 
+pkg;
+
+    at 
+ModuleJob._instantiate (node
+:internal/modules/esm/module
+_job:213:21)
+    at async ModuleJob.run (
+node:internal/modules/esm/mo
+dule_job:320:5)
+    at async 
+ModuleLoader.import (node:in
+ternal/modules/esm/loader:60
+6:24)
+    at async asyncRunEntryPo
+intWithESMLoader (node:inter
+nal/modules/run_main:117:5)
+
+Node.js v20.19.6
