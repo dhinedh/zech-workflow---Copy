@@ -1,8 +1,19 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '../lib/supabase';
-import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
+
+// Mock types formerly from Supabase
+export interface User {
+    id: string;
+    email?: string;
+    user_metadata?: any;
+    role?: string;
+}
+
+export interface Session {
+    user: User;
+    access_token: string;
+}
 
 // Define roles strictly
 export type UserRole = 'SUPER_ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'CLIENT' | 'INTERN' | 'FREELANCER';
@@ -37,92 +48,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
     useEffect(() => {
-        // 1. Get initial session
+        // Initial session check - using mock data for now
         const initSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                await fetchProfile(session.user.id);
+            // Check localStorage or cookies for a mock session
+            const storedUser = typeof window !== 'undefined' ? localStorage.getItem('mock_user') : null;
+            if (storedUser) {
+                const parsedUser = JSON.parse(storedUser);
+                setUser(parsedUser);
+                setSession({ user: parsedUser, access_token: 'mock_token' });
+                await fetchProfile(parsedUser.id);
             } else {
                 setLoading(false);
             }
         };
 
         initSession();
-
-        // 2. Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-
-            if (session?.user) {
-                if (!profile || profile.id !== session.user.id) {
-                    setLoading(true);
-                    await fetchProfile(session.user.id);
-                }
-            } else {
-                setProfile(null);
-                setLoading(false);
-            }
-        });
-
-        return () => subscription.unsubscribe();
     }, []);
 
     const fetchProfile = async (userId: string) => {
+        setLoading(true);
+        // Simplified profile fetching - in a real app this would call your custom backend
+        // For now, we'll use a mock profile based on the user ID
         try {
-            // Updated to query 'User' table which exists (created by Prisma)
-            // Selecting specific fields to avoid sensitive data and match interface needs
-            const { data, error } = await supabase
-                .from('User')
-                .select('id, email, name, role, companyId, isActive')
-                .eq('id', userId)
-                .single();
-
-            if (error) {
-                console.error('Error fetching profile from User table:', error);
-
-                // Fallback: try lowercase 'user' if case sensitivity issue
-                if (error.code === 'PGRST205') { // Relation not found
-                    const { data: retryData, error: retryError } = await supabase
-                        .from('user')
-                        .select('id, email, name, role, companyId, isActive')
-                        .eq('id', userId)
-                        .single();
-
-                    if (!retryError && retryData) {
-                        setProfile({
-                            id: retryData.id,
-                            email: retryData.email,
-                            full_name: retryData.name, // Map name -> full_name
-                            role: retryData.role as UserRole,
-                            company_id: retryData.companyId, // Map companyId -> company_id
-                            status: retryData.isActive ? 'ACTIVE' : 'DISABLED' // Map isActive -> status
-                        });
-                        return;
-                    }
-                }
-            } else if (data) {
-                // Map Prisma User fields (camelCase) to UserProfile interface (snake_case preference)
+            // Simulate API call
+            setTimeout(() => {
                 setProfile({
-                    id: data.id,
-                    email: data.email,
-                    full_name: data.name, // Map name -> full_name
-                    role: data.role as UserRole,
-                    company_id: data.companyId, // Map companyId -> company_id
-                    status: data.isActive ? 'ACTIVE' : 'DISABLED' // Map isActive -> status
+                    id: userId,
+                    email: user?.email || 'user@example.com',
+                    full_name: 'Mock User',
+                    role: 'SUPER_ADMIN',
+                    company_id: 'mock-company-1',
+                    status: 'ACTIVE'
                 });
-            }
+                setLoading(false);
+            }, 500);
         } catch (err) {
-            console.error('Profile fetch exception:', err);
-        } finally {
+            console.error('Profile fetch error:', err);
             setLoading(false);
         }
     };
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        localStorage.removeItem('mock_user');
+        setUser(null);
+        setSession(null);
+        setProfile(null);
         router.push('/login');
     };
 

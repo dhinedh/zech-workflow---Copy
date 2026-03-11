@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,25 +33,21 @@ export default function RegisterPage() {
         setLoading(true);
         setError(null);
 
-        const metadata = {
-            full_name: fullName,
-            role: role,
-        };
-
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: metadata,
-            },
-        });
-
-        if (error) {
-            setError(error.message);
+        // Simulate network delay
+        setTimeout(() => {
+            const mockUser = {
+                id: Math.random().toString(36).substring(7),
+                email,
+                user_metadata: {
+                    full_name: fullName,
+                    role: role,
+                }
+            };
+            
+            localStorage.setItem('mock_user', JSON.stringify(mockUser));
             setLoading(false);
-        } else {
-            router.push('/login?message=Node initialization successful. Verify email.');
-        }
+            router.push('/login?message=Account created successfully. You can now login.');
+        }, 1000);
     };
 
     const isDark = theme === 'dark';
